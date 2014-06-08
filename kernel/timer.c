@@ -1756,6 +1756,64 @@ void msleep(unsigned int msecs)
 
 EXPORT_SYMBOL(msleep);
 
+static void do_nsleep(unsigned int msecs, struct hrtimer_sleeper *sleeper,
+        int sigs)
+{
+        enum hrtimer_mode mode = HRTIMER_MODE_REL;
+        int state = sigs ? TASK_INTERRUPTIBLE : TASK_UNINTERRUPTIBLE;
+
+        /*
+         * This is really just a reworked and simplified version
+         * of do_nanosleep().
+         */
+        hrtimer_init(&sleeper->timer, CLOCK_MONOTONIC, mode);
+        sleeper->timer.node.expires = ktime_set(msecs / 1000,
+                                            (msecs % 1000) * NSEC_PER_MSEC);
+        hrtimer_init_sleeper(sleeper, current);
+
+        do {
+                set_current_state(state);
+                hrtimer_start(&sleeper->timer, sleeper->timer.node.expires, mode);
+                if (sleeper->task)
+                        schedule();
+                hrtimer_cancel(&sleeper->timer);
+                mode = HRTIMER_MODE_ABS;
+        } while (sleeper->task && !(sigs && signal_pending(current)));
+}
+
+
+/**
+ * msleep - sleep safely even with waitqueue interruptions
+ * @msecs: Time in milliseconds to sleep for
+ */
+void hr_msleep(unsigned int msecs)
+{
+        struct hrtimer_sleeper sleeper;
+
+        do_nsleep(msecs, &sleeper, 0);
+}
+
+EXPORT_SYMBOL(hr_msleep);
+
+/**
+ * msleep_interruptible - sleep waiting for signals
+ * @msecs: Time in milliseconds to sleep for
+ */
+unsigned long hr_msleep_interruptible(unsigned int msecs)
+{
+        struct hrtimer_sleeper sleeper;
+        ktime_t left;
+
+        do_nsleep(msecs, &sleeper, 1);
+
+        if (!sleeper.task)
+                return 0;
+        left = ktime_sub(sleeper.timer.node.expires,
+                         sleeper.timer.base->get_time());
+        return max(((long) ktime_to_ns(left))/(long)NSEC_PER_MSEC, 1L);
+}
+
+EXPORT_SYMBOL(hr_msleep_interruptible);
 /**
  * msleep_interruptible - sleep waiting for signals
  * @msecs: Time in milliseconds to sleep for

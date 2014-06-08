@@ -45,20 +45,25 @@ static struct gpio_event_direct_entry vivow_keypad_input_map[] = {
 	},
 };
 
+uint32_t inputs_gpio_table[] = {
+	PCOM_GPIO_CFG(VIVOW_GPIO_KEYPAD_POWER_KEY, 0, GPIO_INPUT,
+		      GPIO_PULL_UP, GPIO_4MA),
+};
+
 static void vivow_setup_input_gpio(void)
 {
-	uint32_t inputs_gpio_table[] = {
-		PCOM_GPIO_CFG(VIVOW_GPIO_KEYPAD_POWER_KEY, 0, GPIO_INPUT, GPIO_PULL_UP, GPIO_4MA),
-	};
-
-	config_gpio_table(inputs_gpio_table, ARRAY_SIZE(inputs_gpio_table));
+	gpio_tlmm_config(inputs_gpio_table[0], GPIO_CFG_ENABLE);
 }
 
 static struct gpio_event_input_info vivow_keypad_input_info = {
 	.info.func = gpio_event_input_func,
 	.flags = GPIOEDF_PRINT_KEYS,
 	.type = EV_KEY,
-	.debounce_time.tv.nsec = 5 * NSEC_PER_MSEC,
+#if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
+	.debounce_time.tv.nsec = 8 * NSEC_PER_MSEC,
+# else
+	.debounce_time.tv64 = 8 * NSEC_PER_MSEC,
+# endif
 	.keymap = vivow_keypad_input_map,
 	.keymap_size = ARRAY_SIZE(vivow_keypad_input_map),
 	.setup_input_gpio = vivow_setup_input_gpio,
@@ -84,14 +89,8 @@ static struct platform_device vivow_keypad_input_device = {
 		.platform_data	= &vivow_keypad_data,
 	},
 };
-/*
-static int vivow_reset_keys_up[] = {
-	KEY_VOLUMEUP,
-	0
-};
-*/
+
 static struct keyreset_platform_data vivow_reset_keys_pdata = {
-	/*.keys_up = vivow_reset_keys_up,*/
 	.keys_down = {
 		KEY_POWER,
 		KEY_VOLUMEDOWN,

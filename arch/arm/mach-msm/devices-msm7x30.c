@@ -1251,14 +1251,14 @@ struct platform_device msm_v4l2_video_overlay_device = {
 };
 #endif
 #endif /* CONFIG_FB_MSM_NEW */
-
+#if 0
 void __init msm_fb_add_devices(struct msm_list_device *devices, int len)
 {
 	int i;
 	for (i = 0; i < len; ++i)
 		msm_fb_register_device(devices[i].name, devices[i].data);
 }
-
+#endif
 
 void __init msm_fb_register_device(char *name, void *data)
 {
