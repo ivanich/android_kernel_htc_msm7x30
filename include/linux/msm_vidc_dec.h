@@ -205,9 +205,6 @@ struct vdec_ioctl_msg {
 #define VDEC_IOCTL_SET_DISABLE_DMX \
 	_IOW(VDEC_IOCTL_MAGIC, 35, struct vdec_ioctl_msg)
 
-#define VDEC_IOCTL_SET_PERF_CLK \
-	_IOR(VDEC_IOCTL_MAGIC, 38, struct vdec_ioctl_msg)
-
 #define VDEC_IOCTL_GET_DISABLE_DMX \
 	_IOR(VDEC_IOCTL_MAGIC, 36, struct vdec_ioctl_msg)
 
